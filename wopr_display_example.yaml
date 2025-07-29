@@ -1,0 +1,84 @@
+esphome:
+  name: wopr-display
+  friendly_name: "WOPR Display"
+  
+  # Include the custom component
+  includes:
+    - components/wopr_display/wopr_display.h
+  libraries:
+    - SPI
+
+external_components:
+  - source:
+      type: local
+      path: components
+
+esp32:
+  board: esp32dev
+  framework:
+    type: arduino
+
+# Enable logging
+logger:
+
+# Enable Home Assistant API
+api:
+  encryption:
+    key: !secret api_encryption_key
+
+ota:
+  - platform: esphome
+    password: !secret ota_password
+
+# WiFi configuration
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+
+  # Enable fallback hotspot (captive portal) in case wifi connection fails
+  ap:
+    ssid: "WOPR Display Fallback Hotspot"
+    password: !secret ap_password
+
+captive_portal:
+
+# SPI configuration for MAX7219
+spi:
+  clk_pin: GPIO18
+  mosi_pin: GPIO19
+
+# WOPR Display Component
+switch:
+  - platform: wopr_display
+    name: "WOPR Animation"
+    id: wopr_animation
+    cs_pin: GPIO5           # Chip select pin for SPI
+    num_matrices: 12        # Number of 8x8 LED matrices (1-32)
+    brightness: 2           # LED brightness (0-15)
+    min_interval_ms: 333    # Minimum animation interval
+    max_interval_ms: 1332   # Maximum animation interval
+
+# Optional: Add a sensor to monitor the display state
+binary_sensor:
+  - platform: template
+    name: "WOPR Display Status"
+    lambda: |-
+      return id(wopr_animation).state;
+
+# Optional: Add automation examples
+automation:
+  # Turn on WOPR display at sunset
+  - alias: "WOPR On at Sunset"
+    trigger:
+      - platform: sun
+        event: sunset
+    action:
+      - switch.turn_on: wopr_animation
+      
+  # Turn off WOPR display at midnight
+  - alias: "WOPR Off at Midnight"
+    trigger:
+      - platform: time
+        at: "00:00:00"
+    action:
+      - switch.turn_off: wopr_animation
