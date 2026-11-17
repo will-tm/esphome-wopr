@@ -4,7 +4,6 @@
 #include "esphome/components/switch/switch.h"
 #include "esphome/components/spi/spi.h"
 #include "esphome/core/hal.h"
-#include "esphome/core/preferences.h"
 
 namespace esphome
 {
@@ -27,6 +26,9 @@ class WOPRDisplay
           SPIDevice<spi::BIT_ORDER_MSB_FIRST, spi::CLOCK_POLARITY_LOW, spi::CLOCK_PHASE_LEADING, spi::DATA_RATE_200KHZ>
 {
   public:
+    // Order must match MODES in select.py
+    enum Mode : uint8_t { MODE_MOVIE, MODE_PANEL, MODE_LAUNCH_CODE, MODE_DEFCON, MODE_FILM };
+
     void setup() override;
     void loop() override;
     void dump_config() override;
@@ -39,35 +41,99 @@ class WOPRDisplay
     {
         this->num_matrices_ = num_matrices;
     }
-    void set_brightness(uint8_t brightness)
-    {
-        this->brightness_ = brightness;
-    }
     void set_interval_range(uint32_t min_ms, uint32_t max_ms)
     {
-        this->min_interval_ms_ = min_ms;
-        this->max_interval_ms_ = max_ms;
+        this->interval_ms_ = min_ms;
+        this->interval_steps_ = max_ms / min_ms;
+    }
+
+    // Runtime settings (also driven by the number/select platforms)
+    void set_brightness(uint8_t brightness);
+    void set_interval(uint32_t interval_ms)
+    {
+        this->interval_ms_ = interval_ms;
+    }
+    void set_density(uint8_t percent)
+    {
+        this->density_ = percent;
+    }
+    void set_defcon(uint8_t level)
+    {
+        this->defcon_ = level;
+    }
+    void set_mode(Mode mode);
+
+    uint8_t get_brightness() const
+    {
+        return this->brightness_;
+    }
+    uint32_t get_interval() const
+    {
+        return this->interval_ms_;
+    }
+    uint8_t get_density() const
+    {
+        return this->density_;
+    }
+    uint8_t get_defcon() const
+    {
+        return this->defcon_;
     }
 
   protected:
     uint8_t num_matrices_{12};
     uint8_t brightness_{0};
-    uint32_t min_interval_ms_{333};
-    uint32_t max_interval_ms_{1332};
+    uint32_t interval_ms_{333};
+    uint32_t interval_steps_{4};
+    uint8_t density_{50};
+    uint8_t defcon_{5};
+    Mode mode_{MODE_MOVIE};
+    bool spi_ready_{false};
 
     uint8_t *display_buffer_;
     uint32_t last_update_{0};
     uint32_t next_interval_{1000};
     bool animation_enabled_{true};
 
-    ESPPreferenceObject pref_;
+    enum class BootPhase : uint8_t { WAIT_NETWORK, SHOW_MESSAGE, RUNNING };
+    BootPhase boot_phase_{BootPhase::WAIT_NETWORK};
+    uint32_t phase_start_{0};
+
+    // Panel mode: one toggle deadline per 4x2 lamp
+    uint32_t *lamp_deadline_{nullptr};
+    // Launch code mode
+    uint16_t code_solved_{0};
+    uint32_t code_next_lock_{0};
+    uint32_t code_hold_until_{0};
+    bool defcon_blink_{false};
+    // Film mode: steady lamp states and the set of lamps that flash every cycle
+    uint8_t *film_base_{nullptr};
+    uint8_t *film_flicker_{nullptr};
+    bool film_flash_on_{false};
 
     void init_display_();
     void write_command_(uint8_t command, uint8_t data);
     void clear_display_();
+    bool get_bit_(const uint8_t *buffer, int x, int y) const;
+    void put_bit_(uint8_t *buffer, int x, int y, bool value);
     void set_pixel_(int x, int y, bool value);
     void update_display_();
-    void animate_wopr_();
+    int width_() const
+    {
+        return this->num_matrices_ * 8;
+    }
+    bool random_lit_() const;
+    void draw_glyph_(int x, const uint8_t *cols);
+    void draw_text_(int x, const char *text);
+    int text_x_(const char *text) const;
+    void enter_mode_();
+    uint32_t render_frame_(uint32_t now, bool &changed);
+    void animate_movie_();
+    bool animate_panel_(uint32_t now);
+    void animate_launch_code_(uint32_t now);
+    void animate_defcon_();
+    void film_set_flicker_run_(int x, int y, int len, bool flicker);
+    void animate_film_();
     uint32_t get_random_interval_();
 };
 

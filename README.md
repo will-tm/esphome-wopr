@@ -66,14 +66,8 @@ This component leverages ESPHome's powerful ecosystem:
    wifi_ssid: "Your_WiFi_SSID"
    wifi_password: "Your_WiFi_Password"
    
-   # API encryption key (generate with: esphome wizard)
+   # API encryption key (generate with: openssl rand -base64 32)
    api_encryption_key: "your_32_char_base64_key_here"
-   
-   # OTA password
-   ota_password: "your_ota_password"
-   
-   # Fallback AP password
-   ap_password: "your_fallback_password"
    ```
 
 3. **Customize the configuration**:
@@ -81,7 +75,7 @@ This component leverages ESPHome's powerful ecosystem:
    - `num_matrices`: Number of LED matrices (1-32)
    - `brightness`: LED brightness (0-15) 
    - `cs_pin`: Chip select GPIO pin
-   - `min_interval_ms` / `max_interval_ms`: Animation timing
+   - `min_interval_ms` / `max_interval_ms`: Animation timing (each frame waits a random multiple of `min_interval_ms` up to `max_interval_ms`)
 
 4. **Compile and upload**:
    ```bash
@@ -104,9 +98,41 @@ switch:
     cs_pin: GPIO5                    # Chip select pin
     num_matrices: 12                 # Number of matrices (1-32)
     brightness: 2                    # LED brightness (0-15)
-    min_interval_ms: 333            # Minimum animation interval
-    max_interval_ms: 1332           # Maximum animation interval
+    min_interval_ms: 333            # Frame interval step
+    max_interval_ms: 1332           # Maximum frame interval (multiple of min)
+    restore_mode: RESTORE_DEFAULT_ON # Standard ESPHome switch restore modes
 ```
+
+On boot the display shows `WIFI OK` (or `OFFLINE` after 15 s without a connection) for 2 s before the animation starts.
+
+### Runtime settings and modes
+
+Optional `number` and `select` entities let Home Assistant change the display without reflashing. Values persist across reboots.
+
+```yaml
+number:
+  - platform: wopr_display
+    brightness:            # 0-15, applied live
+      name: "WOPR Brightness"
+    interval:              # 50-2000 ms, replaces min_interval_ms at runtime
+      name: "WOPR Interval"
+    density:               # 0-100 %, chance a re-rolled lamp is lit
+      name: "WOPR Density"
+    defcon:                # 1-5, used by the DEFCON mode
+      name: "WOPR DEFCON"
+
+select:
+  - platform: wopr_display
+    name: "WOPR Mode"
+```
+
+| Mode | Behaviour |
+|------|-----------|
+| Movie | esp-wopr algorithm: every frame, each pixel has a 50% chance to be re-rolled |
+| Panel | 4x2 pixel "lamps", each blinking on its own random timer |
+| Launch code | Brute-forces `CPE1704TKS`, locking one character at a time, holds 5 s, repeats |
+| DEFCON | `DEFCON n` with flickering surroundings; lower levels flicker faster, DEFCON 1 blinks the text |
+| Film | Modelled on the film's lamp-panel footage: a ~111 ms clock alternating flash/steady ticks, ~35% of lamps flashing in horizontal runs. Set density to 75% for the footage's lit levels |
 
 ## Usage
 

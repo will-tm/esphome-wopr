@@ -1,2 +1,5 @@
 components/wopr_display/__pycache__
 .esphome
+secrets.yaml
+.DS_Store
+__pycache__/
