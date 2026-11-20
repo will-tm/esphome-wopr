@@ -256,15 +256,16 @@ void WOPRDisplay::set_pixel_(int x, int y, bool value) {
 }
 
 void WOPRDisplay::update_display_() {
+    // A row to all matrices in one SPI write (register, data per matrix): far less overhead than a
+    // write per byte, for the spectrum modes' 60 frames a second
+    uint8_t row_data[2 * 32];
     for (int row = 0; row < 8; row++) {
-        this->enable();
-
-        // Send row data to all matrices
         for (int matrix = 0; matrix < this->num_matrices_; matrix++) {
-            this->write_byte(MAX7219_DIGIT0 + row);
-            this->write_byte(this->display_buffer_[row * this->num_matrices_ + matrix]);
+            row_data[2 * matrix] = MAX7219_DIGIT0 + row;
+            row_data[2 * matrix + 1] = this->display_buffer_[row * this->num_matrices_ + matrix];
         }
-
+        this->enable();
+        this->write_array(row_data, 2 * this->num_matrices_);
         this->disable();
     }
 }

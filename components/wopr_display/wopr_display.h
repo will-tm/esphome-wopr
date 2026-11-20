@@ -25,7 +25,7 @@ class WOPRDisplay
     : public switch_::Switch,
       public Component,
       public spi::
-          SPIDevice<spi::BIT_ORDER_MSB_FIRST, spi::CLOCK_POLARITY_LOW, spi::CLOCK_PHASE_LEADING, spi::DATA_RATE_200KHZ>
+          SPIDevice<spi::BIT_ORDER_MSB_FIRST, spi::CLOCK_POLARITY_LOW, spi::CLOCK_PHASE_LEADING, spi::DATA_RATE_8MHZ>
 {
   public:
     // Order must match MODES in select.py
