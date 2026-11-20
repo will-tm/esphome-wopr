@@ -133,6 +133,10 @@ select:
 | Launch code | Brute-forces `CPE1704TKS`, locking one character at a time, holds 5 s, repeats |
 | DEFCON | `DEFCON n` with flickering surroundings; lower levels flicker faster, DEFCON 1 blinks the text |
 | Film | Modelled on the film's lamp-panel footage: a ~111 ms clock alternating flash/steady ticks, ~35% of lamps flashing in horizontal runs. Set density to 75% for the footage's lit levels |
+| Burst | Port of [jebbett/WOPR](https://github.com/jebbett/WOPR) `WOPR.ino`: random pixels flicker at 45 fps for a random 1-4x the interval, then the frame freezes for a random 0.5-1.5x the interval |
+| Flicker | Burst without the freeze: continuous 45 fps random-pixel flicker |
+| Spectrum | Live spectrum bars of what a Mac plays: [crt-audio](https://github.com/will-tm/philips-crt-80) (`macos/crt-audio`) sends Music Assistant's analysis to UDP 8931, drawn as 32 bars with a short peak hold; blank while nothing plays |
+| Spectrum 64 | Spectrum with one 1 px bar per band, 64 side by side, centred |
 
 ## Usage
 

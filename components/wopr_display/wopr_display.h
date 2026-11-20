@@ -3,6 +3,8 @@
 #include "esphome/core/component.h"
 #include "esphome/components/switch/switch.h"
 #include "esphome/components/spi/spi.h"
+#include "esphome/components/socket/socket.h"
+#include <memory>
 #include "esphome/core/hal.h"
 
 namespace esphome
@@ -27,7 +29,17 @@ class WOPRDisplay
 {
   public:
     // Order must match MODES in select.py
-    enum Mode : uint8_t { MODE_MOVIE, MODE_PANEL, MODE_LAUNCH_CODE, MODE_DEFCON, MODE_FILM };
+    enum Mode : uint8_t {
+        MODE_MOVIE,
+        MODE_PANEL,
+        MODE_LAUNCH_CODE,
+        MODE_DEFCON,
+        MODE_FILM,
+        MODE_BURST,
+        MODE_FLICKER,
+        MODE_SPECTRUM,
+        MODE_SPECTRUM_FINE
+    };
 
     void setup() override;
     void loop() override;
@@ -110,6 +122,36 @@ class WOPRDisplay
     uint8_t *film_base_{nullptr};
     uint8_t *film_flicker_{nullptr};
     bool film_flash_on_{false};
+    // Burst mode
+    bool burst_active_{false};
+    uint32_t burst_phase_end_{0};
+    // Spectrum mode: crt-audio's frames (UDP), played out at their capture time plus the network's
+    // delay, as bar heights in pixel rows
+    static const int SPECTRUM_BANDS = 64;
+    static const int SPECTRUM_QUEUE = 16;
+    static const int SPECTRUM_DELAYS = 128;
+    struct SpectrumFrame {
+        uint32_t play_at;
+        float level[SPECTRUM_BANDS];
+    };
+    std::unique_ptr<socket::Socket> spectrum_socket_;
+    bool spectrum_opened_{false};
+    bool spectrum_streaming_{false};
+    uint32_t spectrum_counted_{0};  // frames played since spectrum_count_since_, for the log
+    uint32_t spectrum_count_since_{0};
+    float spectrum_unweight_[SPECTRUM_BANDS];
+    SpectrumFrame spectrum_queue_[SPECTRUM_QUEUE];
+    int spectrum_head_{0};
+    int spectrum_count_{0};
+    float spectrum_delays_[SPECTRUM_DELAYS];
+    int spectrum_delay_count_{0};
+    int spectrum_delay_next_{0};
+    float spectrum_target_[SPECTRUM_BANDS]{};
+    float *spectrum_bars_{nullptr};
+    float *spectrum_peaks_{nullptr};
+    uint32_t *spectrum_peak_at_{nullptr};
+    uint32_t spectrum_seen_{0};
+    uint32_t spectrum_last_{0};
 
     void init_display_();
     void write_command_(uint8_t command, uint8_t data);
@@ -134,6 +176,13 @@ class WOPRDisplay
     void animate_defcon_();
     void film_set_flicker_run_(int x, int y, int len, bool flicker);
     void animate_film_();
+    uint32_t animate_burst_(uint32_t now, bool &changed);
+    void flicker_frame_();
+    void spectrum_setup_();
+    void spectrum_open_();
+    void spectrum_receive_(uint32_t now);
+    bool spectrum_parse_(const char *data, size_t len, double &t, float *level) const;
+    void animate_spectrum_(uint32_t now, int bars, int bar_w, int gap);
     uint32_t get_random_interval_();
 };
 

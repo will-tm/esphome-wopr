@@ -2,6 +2,7 @@ import esphome.codegen as cg
 from esphome.components import spi, switch
 
 CODEOWNERS = ["@will-tm"]
+AUTO_LOAD = ["socket"]  # Spectrum mode: crt-audio's frames over UDP
 
 CONF_WOPR_DISPLAY_ID = "wopr_display_id"
 

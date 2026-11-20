@@ -27,6 +27,7 @@ ota:
 wifi:
   ssid: !secret wifi_ssid
   password: !secret wifi_password
+  power_save_mode: none  # steadier delivery of the spectrum frames (UDP, 60 a second)
 
   # Enable fallback hotspot (captive portal) in case wifi connection fails
   ap:
