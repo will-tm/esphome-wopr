@@ -127,7 +127,7 @@ class WOPRDisplay
     uint32_t burst_phase_end_{0};
     // Spectrum mode: crt-audio's frames (UDP), played out at their capture time plus the network's
     // delay, as bar heights in pixel rows
-    static const int SPECTRUM_BANDS = 64;
+    static const int SPECTRUM_BANDS = 96;  // crt-audio's "spectrum96": a band per column
     static const int SPECTRUM_QUEUE = 16;
     static const int SPECTRUM_DELAYS = 128;
     struct SpectrumFrame {
@@ -182,7 +182,7 @@ class WOPRDisplay
     void spectrum_open_();
     void spectrum_receive_(uint32_t now);
     bool spectrum_parse_(const char *data, size_t len, double &t, float *level) const;
-    void animate_spectrum_(uint32_t now, int bars, int bar_w, int gap);
+    void animate_spectrum_(uint32_t now, int bars, int bar_w, int gap, bool peaks);
     uint32_t get_random_interval_();
 };
 

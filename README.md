@@ -136,7 +136,7 @@ select:
 | Burst | Port of [jebbett/WOPR](https://github.com/jebbett/WOPR) `WOPR.ino`: random pixels flicker at 45 fps for a random 1-4x the interval, then the frame freezes for a random 0.5-1.5x the interval |
 | Flicker | Burst without the freeze: continuous 45 fps random-pixel flicker |
 | Spectrum | Live spectrum bars of what a Mac plays: [crt-audio](https://github.com/will-tm/philips-crt-80) (`macos/crt-audio`) sends Music Assistant's analysis to UDP 8931, drawn as 32 bars with a short peak hold; blank while nothing plays |
-| Spectrum 64 | Spectrum with one 1 px bar per band, 64 side by side, centred |
+| Spectrum 96 | Spectrum with one 1 px bar per band, 96 across the panel, without peak dots |
 
 ## Usage
 

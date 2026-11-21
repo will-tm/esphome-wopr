@@ -7,7 +7,7 @@ from .. import CONF_WOPR_DISPLAY_ID, WOPRDisplay, wopr_display_ns
 WOPRModeSelect = wopr_display_ns.class_("WOPRModeSelect", select.Select, cg.Component)
 
 # Order must match WOPRDisplay::Mode
-MODES = ["Movie", "Panel", "Launch code", "DEFCON", "Film", "Burst", "Flicker", "Spectrum", "Spectrum 64"]
+MODES = ["Movie", "Panel", "Launch code", "DEFCON", "Film", "Burst", "Flicker", "Spectrum", "Spectrum 96"]
 
 CONFIG_SCHEMA = (
     select.select_schema(WOPRModeSelect, icon="mdi:television-classic")

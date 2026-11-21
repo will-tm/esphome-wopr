@@ -48,8 +48,9 @@ static const uint32_t BURST_FRAME_MS = 1000 / 45;
 static const int BURST_PIXELS_PER_TOGGLE = (40 * 8) / 20;
 
 // Spectrum mode: crt-audio (philips-crt-80/macos/crt-audio) sends {"t", "spectrum": [64 values],
-// "loudness", "beat"?} on UDP 8931, 60 times a second: Music Assistant's analysis, A-weighted mel
-// bands from 40 Hz to 16 kHz, 0..1 for -60..0 dB. Drawn as the CRT and RGB matrix draw them: 40% of
+// "spectrum96": [96 values], "loudness", "beat"?} on UDP 8931, 60 times a second: Music Assistant's
+// analysis, A-weighted mel bands from 40 Hz to 16 kHz, 0..1 for -60..0 dB. The 96 bands are used: one
+// per column, or three per bar in the 32-bar mode. Drawn as the CRT and RGB matrix draw them: 40% of
 // the A-weighting given back (the bass), bars over -54..-18 dB, 2 px wide with a 1 px gap.
 static const uint16_t SPECTRUM_PORT = 8931;
 static const float SPECTRUM_F_MIN = 40, SPECTRUM_F_MAX = 16000;
@@ -347,12 +348,12 @@ uint32_t WOPRDisplay::render_frame_(uint32_t now, bool &changed) {
             return BURST_FRAME_MS;
         case MODE_SPECTRUM:
             // 2 px bars with a 1 px gap across the panel
-            this->animate_spectrum_(now, this->width_() / 3, 2, 1);
+            this->animate_spectrum_(now, this->width_() / 3, 2, 1, true);
             changed = true;
             return SPECTRUM_FRAME_MS;
         case MODE_SPECTRUM_FINE:
-            // One 1 px bar per band, side by side, centred
-            this->animate_spectrum_(now, SPECTRUM_BANDS, 1, 0);
+            // One 1 px bar per band across the panel, without peak dots
+            this->animate_spectrum_(now, SPECTRUM_BANDS, 1, 0, false);
             changed = true;
             return SPECTRUM_FRAME_MS;
         case MODE_FILM:
@@ -518,12 +519,12 @@ bool WOPRDisplay::spectrum_parse_(const char *data, size_t len, double &t, float
     // The datagram's JSON, read field by field: {"t":123.4567,"spectrum":[0.123,...],...}
     std::string text(data, len);
     size_t at = text.find("\"t\":");
-    size_t spectrum = text.find("\"spectrum\":[");
+    size_t spectrum = text.find("\"spectrum96\":[");
     if (at == std::string::npos || spectrum == std::string::npos) {
         return false;
     }
     t = strtod(text.c_str() + at + 4, nullptr);
-    const char *p = text.c_str() + spectrum + 12;
+    const char *p = text.c_str() + spectrum + 14;
     for (int b = 0; b < SPECTRUM_BANDS; b++) {
         char *end;
         float v = strtof(p, &end);
@@ -547,7 +548,7 @@ void WOPRDisplay::spectrum_receive_(uint32_t now) {
     if (this->spectrum_socket_ == nullptr) {
         return;
     }
-    char buf[1024];
+    char buf[1500];  // a datagram is ~900 bytes
     bool listening = (this->mode_ == MODE_SPECTRUM || this->mode_ == MODE_SPECTRUM_FINE) && this->animation_enabled_;
     for (;;) {
         ssize_t len = this->spectrum_socket_->read(buf, sizeof(buf));
@@ -587,7 +588,7 @@ void WOPRDisplay::spectrum_receive_(uint32_t now) {
     }
 }
 
-void WOPRDisplay::animate_spectrum_(uint32_t now, int bars, int bar_w, int gap) {
+void WOPRDisplay::animate_spectrum_(uint32_t now, int bars, int bar_w, int gap, bool peaks) {
     // The frames that are due; the latest sets the targets
     while (this->spectrum_count_ > 0 &&
            (int32_t) (now - this->spectrum_queue_[this->spectrum_head_].play_at) >= 0) {
@@ -646,7 +647,7 @@ void WOPRDisplay::animate_spectrum_(uint32_t now, int bars, int bar_w, int gap) 
             for (int h = 0; h < height; h++) {
                 this->set_pixel_(x, 7 - h, true);
             }
-            if (peak_row > height) {
+            if (peaks && peak_row > height) {
                 this->set_pixel_(x, 8 - peak_row, true);
             }
         }
